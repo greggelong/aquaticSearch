@@ -3,26 +3,23 @@
 
 <head>
     <meta charset="UTF-8" />
-    <!-- ✅ The ONE line that actually controls mobile sizing -->
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Deep Sea Sweeping Sonar</title>
     <style>
-        /* ✅ Force canvas to fill the physical screen exactly */
         body {
             margin: 0;
             overflow: hidden;
             background: #fcfcfc;
             touch-action: none;
-            /* prevents zoom on double-tap */
         }
 
         canvas {
             display: block;
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover;
-            /* prevents squishing */
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            /* ✅ No stretching, keeps aspect ratio */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -30,9 +27,6 @@
 
 <body>
     <script>
-        // -------------------------------------------------------------
-        // 1. CONFIGURATION
-        // -------------------------------------------------------------
         const SEGMENT_LEN = 14;
         const NUM_CABLES = 5;
         const GRAVITY = 0.45;
@@ -43,17 +37,12 @@
         var wrecks = [];
         var ripples = [];
 
-        // -------------------------------------------------------------
-        // 2. SETUP — Mobile‑First Sizing
-        // -------------------------------------------------------------
         function setup() {
-            // ✅ Remove any scaling compensation (internal)
             pixelDensity(1);
 
-            // ✅ Create canvas at CSS pixel width/height (full screen)
+            // ✅ Use full window size — CSS handles scaling
             createCanvas(windowWidth, windowHeight);
 
-            // ✅ Adjust cable length for the actual canvas height
             CABLE_LENGTH = Math.ceil((height - 270) / SEGMENT_LEN) + 4;
 
             boatX = width / 2;
@@ -67,14 +56,10 @@
             wrecks.push(new Wreck(width * 0.72, height - 210, 250, 1.1));
         }
 
-        // -------------------------------------------------------------
-        // 3. DRAW
-        // -------------------------------------------------------------
         function draw() {
             background(255);
 
             let targetX = mouseX;
-            // Use touchX for mobile (p5.js auto-handles this via mouseX)
             if (targetX >= 0 && targetX < width) {
                 boatX += (targetX - boatX) * 0.04;
             }
@@ -94,9 +79,6 @@
             for (let cable of cables) cable.display();
         }
 
-        // -------------------------------------------------------------
-        // 4. HELPERS
-        // -------------------------------------------------------------
         function drawOceanSurface() {
             stroke(0);
             strokeWeight(2);
@@ -141,9 +123,6 @@
             for (let wreck of wrecks) wreck.drawRocks();
         }
 
-        // -------------------------------------------------------------
-        // 5. CABLE
-        // -------------------------------------------------------------
         class Cable {
             constructor(startX) {
                 this.segments = [];
@@ -202,9 +181,6 @@
             getTip() { return this.segments[this.segments.length - 1]; }
         }
 
-        // -------------------------------------------------------------
-        // 6. RIPPLES
-        // -------------------------------------------------------------
         function drawRipples() {
             let detection = false;
             for (let cable of cables) {
@@ -236,9 +212,6 @@
             }
         }
 
-        // -------------------------------------------------------------
-        // 7. WRECK
-        // -------------------------------------------------------------
         class Wreck {
             constructor(x, y, w, scale) {
                 this.x = x;
@@ -330,13 +303,6 @@
                 }
                 pop();
             }
-        }
-
-        // -------------------------------------------------------------
-        // 8. RESIZE
-        // -------------------------------------------------------------
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
         }
     </script>
 </body>
