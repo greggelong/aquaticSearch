@@ -3,9 +3,8 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Deep Sea Sweeping Sonar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Deep Sea Sonar</title>
     <style>
         body {
             margin: 0;
@@ -16,10 +15,10 @@
 
         canvas {
             display: block;
-            width: 100vw;
-            height: 100vh;
+            width: 100vw !important;
+            height: auto !important;
+            max-height: 100vh;
             object-fit: contain;
-            /* ✅ No stretching, keeps aspect ratio */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -29,7 +28,7 @@
     <script>
         const SEGMENT_LEN = 14;
         const NUM_CABLES = 5;
-        const GRAVITY = 0.45;
+        const GRAVITY = 1.45;
 
         var CABLE_LENGTH;
         var boatX;
@@ -40,11 +39,14 @@
         function setup() {
             pixelDensity(1);
 
-            // ✅ Use full window size — CSS handles scaling
-            createCanvas(windowWidth, windowHeight);
+            // ✅ MOBILE FIX: Use a taller canvas on small screens
+            if (windowWidth < 600) {
+                createCanvas(800, 1400); // Deep ocean on mobile
+            } else {
+                createCanvas(windowWidth, windowHeight); // Full screen on desktop
+            }
 
             CABLE_LENGTH = Math.ceil((height - 270) / SEGMENT_LEN) + 4;
-
             boatX = width / 2;
 
             for (let i = 0; i < NUM_CABLES; i++) {
@@ -58,27 +60,26 @@
 
         function draw() {
             background(255);
-
             let targetX = mouseX;
             if (targetX >= 0 && targetX < width) {
                 boatX += (targetX - boatX) * 0.04;
             }
-
             let surfaceY = 100;
             for (let i = 0; i < NUM_CABLES; i++) {
                 let offset = map(i, 0, NUM_CABLES - 1, -80, 80);
                 cables[i].update(boatX + offset, surfaceY);
             }
-
             drawOceanSurface();
             drawVessel(boatX, surfaceY);
             drawSeaFloor();
-
             for (let wreck of wrecks) wreck.display();
             drawRipples();
             for (let cable of cables) cable.display();
         }
 
+        // -------------------------------------------------------------
+        // DRAWING HELPERS
+        // -------------------------------------------------------------
         function drawOceanSurface() {
             stroke(0);
             strokeWeight(2);
@@ -123,6 +124,9 @@
             for (let wreck of wrecks) wreck.drawRocks();
         }
 
+        // -------------------------------------------------------------
+        // CABLE CLASS
+        // -------------------------------------------------------------
         class Cable {
             constructor(startX) {
                 this.segments = [];
@@ -176,11 +180,15 @@
                 let tip = this.segments[this.segments.length - 1];
                 strokeWeight(4);
                 point(tip.x, tip.y);
+                strokeWeight(1.5);
             }
 
             getTip() { return this.segments[this.segments.length - 1]; }
         }
 
+        // -------------------------------------------------------------
+        // RIPPLES
+        // -------------------------------------------------------------
         function drawRipples() {
             let detection = false;
             for (let cable of cables) {
@@ -212,6 +220,9 @@
             }
         }
 
+        // -------------------------------------------------------------
+        // WRECK CLASS
+        // -------------------------------------------------------------
         class Wreck {
             constructor(x, y, w, scale) {
                 this.x = x;
