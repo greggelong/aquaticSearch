@@ -3,18 +3,26 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deep Sea Sweeping Sonar · Fixed</title>
+    <!-- ✅ The ONE line that actually controls mobile sizing -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Deep Sea Sweeping Sonar</title>
     <style>
+        /* ✅ Force canvas to fill the physical screen exactly */
         body {
             margin: 0;
             overflow: hidden;
             background: #fcfcfc;
+            touch-action: none;
+            /* prevents zoom on double-tap */
         }
 
         canvas {
             display: block;
-            cursor: grab;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover;
+            /* prevents squishing */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -23,88 +31,71 @@
 <body>
     <script>
         // -------------------------------------------------------------
-        // 1. CONFIGURATION (safe values – no p5 variables)
+        // 1. CONFIGURATION
         // -------------------------------------------------------------
         const SEGMENT_LEN = 14;
         const NUM_CABLES = 5;
         const GRAVITY = 0.45;
 
-        // Declared but not calculated yet (will be set inside setup)
         var CABLE_LENGTH;
-
-        // -------------------------------------------------------------
-        // 2. GLOBAL VARIABLES
-        // -------------------------------------------------------------
         var boatX;
         var cables = [];
         var wrecks = [];
         var ripples = [];
 
         // -------------------------------------------------------------
-        // 3. SETUP (now safe to use p5 functions)
+        // 2. SETUP — Mobile‑First Sizing
         // -------------------------------------------------------------
         function setup() {
-            createCanvas(windowWidth, windowHeight);
-            pixelDensity(1)
+            // ✅ Remove any scaling compensation (internal)
+            pixelDensity(1);
 
-            // ✅ Safe: calculate length using `height` (p5 canvas height)
-            //CABLE_LENGTH = Math.ceil((height - 100) / SEGMENT_LEN) + 30;
-            // Safe length: just enough to reach the bottom, plus a tiny 4-segment slack
+            // ✅ Create canvas at CSS pixel width/height (full screen)
+            createCanvas(windowWidth, windowHeight);
+
+            // ✅ Adjust cable length for the actual canvas height
             CABLE_LENGTH = Math.ceil((height - 270) / SEGMENT_LEN) + 4;
 
             boatX = width / 2;
 
-            // Create cables
             for (let i = 0; i < NUM_CABLES; i++) {
                 let offset = map(i, 0, NUM_CABLES - 1, -80, 80);
                 cables.push(new Cable(boatX + offset));
             }
 
-            // Create two shipwrecks
             wrecks.push(new Wreck(width * 0.30, height - 170, 210, 1.0));
             wrecks.push(new Wreck(width * 0.72, height - 210, 250, 1.1));
         }
 
         // -------------------------------------------------------------
-        // 4. MAIN DRAW LOOP
+        // 3. DRAW
         // -------------------------------------------------------------
         function draw() {
             background(255);
 
-            // Steer boat with mouse
             let targetX = mouseX;
-            if (mouseX >= 0 && mouseX < width) {
+            // Use touchX for mobile (p5.js auto-handles this via mouseX)
+            if (targetX >= 0 && targetX < width) {
                 boatX += (targetX - boatX) * 0.04;
             }
 
-            // Update all cables
             let surfaceY = 100;
             for (let i = 0; i < NUM_CABLES; i++) {
                 let offset = map(i, 0, NUM_CABLES - 1, -80, 80);
                 cables[i].update(boatX + offset, surfaceY);
             }
 
-            // Draw scene
             drawOceanSurface();
             drawVessel(boatX, surfaceY);
             drawSeaFloor();
 
-            // Draw shipwrecks (static — no glitch)
-            for (let wreck of wrecks) {
-                wreck.display();
-            }
-
-            // Draw sonar ripples
+            for (let wreck of wrecks) wreck.display();
             drawRipples();
-
-            // Draw cables (over everything)
-            for (let cable of cables) {
-                cable.display();
-            }
+            for (let cable of cables) cable.display();
         }
 
         // -------------------------------------------------------------
-        // 5. DRAWING HELPERS
+        // 4. HELPERS
         // -------------------------------------------------------------
         function drawOceanSurface() {
             stroke(0);
@@ -118,21 +109,17 @@
             stroke(0);
             strokeWeight(2);
             noFill();
-
             beginShape();
             vertex(-40, 0);
             vertex(-45, -10);
             vertex(45, -10);
             vertex(40, 0);
             endShape(CLOSE);
-
             line(-15, -10, -15, -25);
             line(-5, -10, -5, -25);
             line(-15, -25, -5, -25);
-
             line(-10, -25, -10, -35);
             ellipse(-10, -35, 8, 4);
-
             pop();
         }
 
@@ -151,14 +138,11 @@
                 vertex(x, getFloorY(x));
             }
             endShape();
-
-            for (let wreck of wrecks) {
-                wreck.drawRocks();
-            }
+            for (let wreck of wrecks) wreck.drawRocks();
         }
 
         // -------------------------------------------------------------
-        // 6. CABLE PHYSICS
+        // 5. CABLE
         // -------------------------------------------------------------
         class Cable {
             constructor(startX) {
@@ -170,16 +154,13 @@
             }
 
             update(headX, headY) {
-                // Attach top to boat
                 this.segments[0].x = headX;
                 this.segments[0].y = headY;
 
-                // Apply gravity
                 for (let i = 1; i < this.segments.length; i++) {
                     this.segments[i].y += GRAVITY;
                 }
 
-                // Verlet constraint
                 for (let i = 1; i < this.segments.length; i++) {
                     let prev = this.segments[i - 1];
                     let curr = this.segments[i];
@@ -194,16 +175,12 @@
                     }
                 }
 
-                // Floor collision for ALL segments
                 for (let i = 0; i < this.segments.length; i++) {
                     let s = this.segments[i];
                     let floorY = getFloorY(s.x);
-                    if (s.y > floorY) {
-                        s.y = floorY;
-                    }
+                    if (s.y > floorY) s.y = floorY;
                 }
 
-                // Current sway
                 let sway = sin(frameCount * 0.02 + headX * 0.05) * 1.2;
                 for (let i = 0; i < this.segments.length; i++) {
                     this.segments[i].x += sway * (i / this.segments.length) * 0.15;
@@ -215,38 +192,26 @@
                 strokeWeight(1.5);
                 noFill();
                 beginShape();
-                for (let pt of this.segments) {
-                    vertex(pt.x, pt.y);
-                }
+                for (let pt of this.segments) vertex(pt.x, pt.y);
                 endShape();
-
                 let tip = this.segments[this.segments.length - 1];
                 strokeWeight(4);
                 point(tip.x, tip.y);
-                strokeWeight(1.5);
             }
 
-            getTip() {
-                return this.segments[this.segments.length - 1];
-            }
+            getTip() { return this.segments[this.segments.length - 1]; }
         }
 
         // -------------------------------------------------------------
-        // 7. SONAR RIPPLES
+        // 6. RIPPLES
         // -------------------------------------------------------------
         function drawRipples() {
             let detection = false;
-
             for (let cable of cables) {
                 let tip = cable.getTip();
                 for (let wreck of wrecks) {
                     if (wreck.contains(tip)) {
-                        ripples.push({
-                            x: tip.x,
-                            y: tip.y,
-                            radius: 2,
-                            life: 1.0,
-                        });
+                        ripples.push({ x: tip.x, y: tip.y, radius: 2, life: 1.0 });
                         detection = true;
                         break;
                     }
@@ -258,12 +223,7 @@
                 let r = ripples[i];
                 r.radius += 2.8;
                 r.life -= 0.025;
-
-                if (r.life <= 0) {
-                    ripples.splice(i, 1);
-                    continue;
-                }
-
+                if (r.life <= 0) { ripples.splice(i, 1); continue; }
                 let alpha = 180 * r.life;
                 push();
                 noFill();
@@ -277,7 +237,7 @@
         }
 
         // -------------------------------------------------------------
-        // 8. SHIPWRECK CLASS (static – no glitch)
+        // 7. WRECK
         // -------------------------------------------------------------
         class Wreck {
             constructor(x, y, w, scale) {
@@ -286,8 +246,6 @@
                 this.w = w;
                 this.scale = scale;
                 this.h = w * 0.4;
-
-                // Fixed masts
                 this.masts = [];
                 for (let i = 0; i < 3; i++) {
                     let mx = random(-this.w / 2, this.w / 2);
@@ -296,8 +254,6 @@
                     let rEnd = random(10, 30);
                     this.masts.push({ x: mx, h: mh, rigging: rig, end: rEnd });
                 }
-
-                // Fixed rocks
                 this.rocks = [];
                 for (let i = 0; i < 12; i++) {
                     this.rocks.push({
@@ -324,7 +280,6 @@
                 stroke(0);
                 strokeWeight(2);
                 noFill();
-
                 beginShape();
                 vertex(-this.w / 2, 0);
                 vertex(-this.w / 2 + 10, -this.h / 2);
@@ -333,17 +288,14 @@
                 vertex(this.w / 3, 10);
                 vertex(-this.w / 6, 10);
                 endShape(CLOSE);
-
                 strokeWeight(1);
                 line(-this.w / 2 + 5, 0, -this.w / 2 + 15, -this.h / 4);
                 line(-this.w / 2 + 15, -this.h / 4, -this.w / 2 + 20, -this.h / 6);
                 line(-this.w / 2 + 20, -this.h / 6, 0, -this.h / 3);
                 line(-this.w / 4 + 5, -this.h / 6, -this.w / 4, -this.h / 2 + 5);
-
                 strokeWeight(1.5);
                 rect(-this.w / 4, -this.h / 4, 15, 10);
                 rect(0, -this.h / 4, 15, 10);
-
                 strokeWeight(2);
                 for (let mast of this.masts) {
                     let mastY = -10;
@@ -353,14 +305,12 @@
                         line(mast.x, mastY - mast.h / 2, mast.x + mast.end, mastY - mast.h - 5);
                     }
                 }
-
                 strokeWeight(1.5);
                 for (let i = 0; i < 6; i++) {
                     let bx = map(i, 0, 5, -this.w / 2 + 5, this.w / 3 + 5);
                     let by = (i % 3) * 6;
                     point(bx, by);
                 }
-
                 pop();
             }
 
@@ -383,7 +333,7 @@
         }
 
         // -------------------------------------------------------------
-        // 9. WINDOW RESIZE
+        // 8. RESIZE
         // -------------------------------------------------------------
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
